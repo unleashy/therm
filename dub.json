@@ -1,0 +1,10 @@
+{
+  "name": "therm",
+  "authors": ["Emmanuelle Fernandes"],
+  "license": "MIT",
+  "copyright": "Copyright © 2025, Emmanuelle Fernandes",
+  "description": "Console interface with Unicode support for Windows and Linux",
+
+  "targetPath": "out",
+  "dflags": ["-preview=all"]
+}
