@@ -14,7 +14,8 @@ struct Therm {
             import therm.windows;
             return Therm(new WindowsCore());
         } else version (Posix) {
-            static assert(false, "todo: not implemented");
+            import therm.posix;
+            return Therm(new PosixCore());
         } else {
             static assert(false, "OS not supported");
         }
