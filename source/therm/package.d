@@ -43,9 +43,9 @@ struct Therm {
         core.write(prompt);
         core.flush();
 
-        auto editor = LineEditor(prompt);
-        auto vt = Vt.createInactive();
+        editor.prompt = prompt;
 
+        auto vt = Vt.createInactive();
         loop: foreach (c; &core.read) {
             if (vt.active) {
                 AnsiInputEscape escape;
@@ -53,6 +53,8 @@ struct Therm {
                     final switch (escape) with (AnsiInputEscape) {
                         case Unknown: break;
 
+                        case ArrowUp: editor.arrowUp(); break;
+                        case ArrowDown: editor.arrowDown(); break;
                         case ArrowLeft: editor.arrowLeft(); break;
                         case ArrowRight: editor.arrowRight(); break;
                         case Home: editor.home(); break;
@@ -93,35 +95,75 @@ struct Therm {
         core.write("\n");
         core.flush();
 
-        return editor.finish();
+        return editor.commit();
     }
 
     private OsCore core;
+    private LineEditor editor;
 }
-
 
 private struct LineEditor {
     import std.array : insertInPlace, replaceInPlace;
     import std.utf : count, toUTF8;
+    import core.internal.utf;
 
-    dstring line;
-    short cursor;
+    dstring buffer;
+    short cursor = 1;
+    short minCursor = 1;
 
-    immutable short minCursor;
-
-    this(in string prompt) {
-        cursor = minCursor = cast(short) (1 + prompt.count);
-    }
+    dstring[] history = [];
+    size_t historyAt = 0;
 
     invariant(cursor >= 1);
+    invariant(minCursor <= cursor);
+    invariant(historyAt <= history.length);
 
-    string finish() const {
-        return line.toUTF8();
+    string commit() {
+        auto s = line.toUTF8();
+
+        history ~= line;
+        historyAt = history.length;
+        buffer = ""d;
+
+        return s;
     }
 
     void type(in dchar c) {
-        line.insertInPlace(cursorIndex, c);
+        if (!isLatest) {
+            buffer = history[historyAt].dup;
+            historyAt = history.length;
+        }
+
+        buffer.insertInPlace(cursorIndex, c);
         ++cursor;
+    }
+
+    void backspace() {
+        if (line.length == 0) return;
+
+        if (!isLatest) {
+            buffer = history[historyAt].dup;
+            historyAt = history.length;
+        }
+
+        buffer.replaceInPlace(cursorIndex - 1, cursorIndex, cast(char[]) []);
+        --cursor;
+    }
+
+    /// Go to the past in history
+    void arrowUp() {
+        if (historyAt > 0) {
+            --historyAt;
+            cursor = maxCursor;
+        }
+    }
+
+    /// Go to the future in history
+    void arrowDown() {
+        if (historyAt < history.length) {
+            ++historyAt;
+            cursor = maxCursor;
+        }
     }
 
     void arrowRight() {
@@ -144,13 +186,6 @@ private struct LineEditor {
         cursor = maxCursor;
     }
 
-    void backspace() {
-        if (line.length == 0) return;
-
-        line.replaceInPlace(cursorIndex - 1, cursorIndex, cast(char[]) []);
-        --cursor;
-    }
-
     short cursorIndex() const {
         return cast(short) (cursor - minCursor);
     }
@@ -158,11 +193,21 @@ private struct LineEditor {
     short maxCursor() const {
         return cast(short) (minCursor + line.length);
     }
+
+    bool isLatest() const => historyAt == history.length;
+
+    dstring line() const => isLatest ? buffer : history[historyAt];
+
+    void prompt(in string p) {
+        cursor = minCursor = cast(short) (1 + p.count);
+    }
 }
 
 private enum AnsiInputEscape {
     Unknown,
 
+    ArrowUp,
+    ArrowDown,
     ArrowRight,
     ArrowLeft,
     Home,
@@ -192,6 +237,8 @@ private struct Vt {
 
         active = false;
         switch (c) with (AnsiInputEscape) {
+            case 'A':*escape = ArrowUp; return true;
+            case 'B': *escape = ArrowDown; return true;
             case 'C': *escape = ArrowRight; return true;
             case 'D': *escape = ArrowLeft; return true;
             case 'H': *escape = Home; return true;
