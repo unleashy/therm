@@ -17,6 +17,10 @@ class PosixCore : OsCore {
         io.write(s);
     }
 
+    void ewrite(string s) {
+        io.stderr.write(s);
+    }
+
     void flush() {
         io.stdout.flush();
     }

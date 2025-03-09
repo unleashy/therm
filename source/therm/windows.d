@@ -7,9 +7,32 @@ import therm.os_core;
 
 class WindowsCore : OsCore {
     void write(string s) {
+        writeImpl!(STD_OUTPUT_HANDLE)(s);
+    }
+
+    void ewrite(string s) {
+        writeImpl!(STD_ERROR_HANDLE)(s);
+    }
+
+    int read(scope int delegate(dchar) f) {
+        auto hIn = wenforce(GetStdHandle(STD_INPUT_HANDLE));
+        uint prevMode;
+        if (GetConsoleMode(hIn, &prevMode) == 0) {
+            return readRedirected(f);
+        } else {
+            return readNormal(hIn, prevMode, f);
+        }
+    }
+
+    void flush() {
+        import std.stdio : stdout;
+        stdout.flush();
+    }
+
+    private void writeImpl(uint outHandleId)(string s) {
         import std.conv : to;
 
-        auto hOut = wenforce(GetStdHandle(STD_OUTPUT_HANDLE));
+        auto hOut = wenforce(GetStdHandle(outHandleId));
         uint prevMode;
         if (GetConsoleMode(hOut, &prevMode) == 0) {
             import std.stdio : write;
@@ -41,21 +64,6 @@ class WindowsCore : OsCore {
 
             w = w[written .. $];
         }
-    }
-
-    int read(scope int delegate(dchar) f) {
-        auto hIn = wenforce(GetStdHandle(STD_INPUT_HANDLE));
-        uint prevMode;
-        if (GetConsoleMode(hIn, &prevMode) == 0) {
-            return readRedirected(f);
-        } else {
-            return readNormal(hIn, prevMode, f);
-        }
-    }
-
-    void flush() {
-        import std.stdio : stdout;
-        stdout.flush();
     }
 
     private int readRedirected(scope int delegate(dchar) f) {

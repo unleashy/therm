@@ -2,6 +2,7 @@ module therm.os_core;
 
 interface OsCore {
     void write(string s);
+    void ewrite(string s);
     int read(scope int delegate(dchar) f);
     void flush();
 }
@@ -11,6 +12,10 @@ class NullCore : OsCore {
 
     void write(string s) {
         write(s);
+    }
+
+    void ewrite(string s) {
+        stderr.write(s);
     }
 
     int read(scope int delegate(dchar) f) {

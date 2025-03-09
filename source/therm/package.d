@@ -3,6 +3,9 @@ module therm;
 import therm.os_core;
 
 struct Therm {
+    import std.conv : text;
+    import std.format : format;
+
     this(OsCore core)
     in (core !is null)
     {
@@ -22,7 +25,6 @@ struct Therm {
     }
 
     void write(T...)(T args) {
-        import std.conv : text;
         core.write(text(args));
     }
 
@@ -31,12 +33,27 @@ struct Therm {
     }
 
     void writef(alias fmt, T...)(T args) {
-        import std.format : format;
         core.write(format!fmt(args));
     }
 
     void writefln(alias fmt, T...)(T args) {
         writef!(fmt ~ "\n")(args);
+    }
+
+    void ewrite(T...)(T args) {
+        core.ewrite(text(args));
+    }
+
+    void ewriteln(T...)(T args) {
+        ewrite(args, '\n');
+    }
+
+    void ewritef(alias fmt, T...)(T args) {
+        core.ewrite(format!fmt(args));
+    }
+
+    void ewritefln(alias fmt, T...)(T args) {
+        ewritef!(fmt ~ "\n")(args);
     }
 
     string readln(in string prompt) {
