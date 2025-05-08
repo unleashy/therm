@@ -13,11 +13,11 @@ import therm.os_core;
 enum IUTF8 = 0x4000; // only useful on linux
 
 class PosixCore : OsCore {
-    void write(string s) {
+    void write(in string s) @trusted {
         io.write(s);
     }
 
-    void ewrite(string s) {
+    void ewrite(in string s) @trusted {
         io.stderr.write(s);
     }
 
@@ -25,7 +25,7 @@ class PosixCore : OsCore {
         io.stdout.flush();
     }
 
-    int read(scope int delegate(dchar) f) {
+    int read(scope int delegate(dchar) f) @trusted {
         import core.sys.posix.unistd : read;
         import std.typecons : Yes;
         import std.utf : stride, decodeFront;

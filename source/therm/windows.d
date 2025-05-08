@@ -6,15 +6,15 @@ import std.windows.syserror;
 import therm.os_core;
 
 class WindowsCore : OsCore {
-    void write(string s) {
+    void write(in string s) {
         writeImpl!(STD_OUTPUT_HANDLE)(s);
     }
 
-    void ewrite(string s) {
+    void ewrite(in string s) {
         writeImpl!(STD_ERROR_HANDLE)(s);
     }
 
-    int read(scope int delegate(dchar) f) {
+    int read(scope int delegate(dchar) f) @trusted {
         auto hIn = wenforce(GetStdHandle(STD_INPUT_HANDLE));
         uint prevMode;
         if (GetConsoleMode(hIn, &prevMode) == 0) {
@@ -29,7 +29,7 @@ class WindowsCore : OsCore {
         stdout.flush();
     }
 
-    private void writeImpl(uint outHandleId)(string s) {
+    private void writeImpl(uint outHandleId)(in string s) {
         import std.conv : to;
 
         auto hOut = wenforce(GetStdHandle(outHandleId));
@@ -80,7 +80,7 @@ class WindowsCore : OsCore {
         HANDLE hIn,
         uint prevMode,
         scope int delegate(dchar) f
-    ) {
+    ) @system {
         import std.typecons : Yes;
         import std.utf : stride, decodeFront;
 
@@ -121,7 +121,7 @@ class WindowsCore : OsCore {
     }
 }
 
-bool isRedirected(HANDLE handle) {
+bool isRedirected(HANDLE handle) @trusted {
     uint _;
     return handle !is null && GetConsoleMode(handle, &_) == 0;
 }
